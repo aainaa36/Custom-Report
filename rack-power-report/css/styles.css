@@ -177,6 +177,12 @@ table.report { border-collapse: collapse; width: 100%; min-width: 640px; font-va
 .chip[disabled] { opacity: .45; cursor: not-allowed; }
 .chip .n { font-size: 12px; font-weight: 600; padding: 0 7px; border-radius: 999px; background: color-mix(in srgb, currentColor 14%, transparent); font-variant-numeric: tabular-nums; }
 .chip.alt { border-style: dashed; }
+.add-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 16px; }
+.add-grid .wide { grid-column: 1 / -1; }
+.add-grid .field textarea { min-height: 90px; }
+#xlCode { min-height: 120px; }
+h3.sub { margin: 6px 0 0; font-size: 15px; font-weight: 600; }
+@media (max-width: 640px) { .add-grid { grid-template-columns: 1fr; } }
 .range-row { display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-end; }
 .range-row .field input[type="date"] { min-width: 160px; }
 .chip-hint { margin: 10px 0 0; font-size: 13px; color: var(--muted); }
