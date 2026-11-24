@@ -29,11 +29,6 @@ Open `index.html` in a browser. Or, from this folder, run `python3 -m http.serve
 
 The page loads three libraries from the internet (jsPDF and its table plugin for the PDF, and SheetJS for reading Excel files), so it needs a connection. If the PDF button says the library did not load, the connection or a network filter is blocking `cdnjs.cloudflare.com`.
 
-## Put it on GitHub Pages
-
-1. Create a repository and upload everything in this folder, keeping the `css`, `js` and `assets` folders.
-2. Go to **Settings → Pages**, choose **Deploy from a branch**, pick `main` and `/ (root)`, then save.
-3. After a minute the page is live at `https://<your-username>.github.io/<repository-name>/`.
 
 **Privacy.** `js/lookup.js` lists every rack and company, and anyone who can open the page can read it. The page also has no login, so any visitor can choose any company's button. A public repository makes the lookup public too. Use a private repository, or host the page where only your clients can reach it. GitHub Pages from a private repository needs a paid GitHub plan.
 
