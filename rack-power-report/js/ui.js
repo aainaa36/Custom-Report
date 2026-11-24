@@ -924,20 +924,8 @@
           else if (b.kind === "total") { d.cell.styles.fillColor = [191, 191, 191]; d.cell.styles.fontStyle = "bold"; }
           else {
             if (d.column.index === 0) d.cell.styles.cellPadding = { top: 1.6, bottom: 1.6, left: 6, right: 2 };
-            /* keep room under a reading for the date and time of that reading */
-            if ((d.column.index === 1 || d.column.index === 2) && b.at[d.column.index - 1]) { d.cell.text = [d.cell.text[0], " "]; }
           }
         },
-        didDrawCell: d => {
-          if (d.section !== "body") return;
-          const b = body[d.row.index];
-          if (b.kind !== "meter" || (d.column.index !== 1 && d.column.index !== 2)) return;
-          const at = b.at[d.column.index - 1];
-          if (!at || !Number.isFinite(at)) return;
-          doc.setFont("helvetica", "normal"); doc.setFontSize(7); doc.setTextColor(110);
-          doc.text(stampTime(at), d.cell.x + d.cell.width - 2, d.cell.y + d.cell.height - 1.8, { align: "right" });
-          doc.setFontSize(9); doc.setTextColor(0);
-        }
       });
       const pages = doc.internal.getNumberOfPages();
       for (let i = 1; i <= pages; i++) {
