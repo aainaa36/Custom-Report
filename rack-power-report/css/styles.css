@@ -16,7 +16,7 @@
   --bad-bg: #fde8e8;
   --ok: #0f6b4f;
   --ok-bg: #e4f4ec;
-  --font: "IBM Plex Sans", "Segoe UI", system-ui, -apple-system, Arial, sans-serif;
+  --font: Arial, Helvetica, sans-serif;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
