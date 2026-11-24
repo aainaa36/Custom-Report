@@ -203,11 +203,27 @@
 
 <section class="card card-pad" id="xlCard">
   <details class="setup" id="xlDetails">
-    <summary>Import racks and companies from your Excel report</summary>
+    <summary>Add or import racks and companies</summary>
     <div class="setup-body">
-      <p class="hint" style="margin:0;">For whoever looks after the report: choose the Custom Report workbook to read its racks and meters, one sheet per company, and get the code line that builds them into the page. Clients do not need this, because the page already holds the racks and companies. The file is read on your computer and not uploaded anywhere.</p>
+      <p class="hint" style="margin:0;">For whoever looks after the report. Clients do not need this, because the page already holds the racks and companies.</p>
+
+      <h3 class="sub">Type in a company, a rack and its meters</h3>
+      <div class="add-grid">
+        <div class="field"><label for="addCo">Company</label><input id="addCo" type="text" list="addCoList" maxlength="60" autocomplete="off"><datalist id="addCoList"></datalist></div>
+        <div class="field"><label for="addRack">Rack name</label><input id="addRack" type="text" maxlength="60" autocomplete="off"></div>
+        <div class="field wide"><label for="addMeters">Meter names, one per line</label><textarea id="addMeters" rows="4" spellcheck="false" placeholder="PDU-S1-FN4-R01&#10;PDU-S2-FN4-R01"></textarea></div>
+      </div>
+      <div><button class="btn primary" id="addBtn" type="button">Add this rack</button> <span class="hint" id="addMsg" role="status"></span></div>
+
+      <h3 class="sub">Or read them from the Excel report</h3>
+      <p class="hint" style="margin:0;">Choose the Custom Report workbook to read its racks and meters, one sheet per company. The file is read on your computer and not uploaded anywhere.</p>
       <div><label class="btn small" for="xlFile">Choose Excel report</label><input id="xlFile" type="file" accept=".xlsx,.xlsm,.xls" hidden></div>
       <div id="xlBody"></div>
+
+      <h3 class="sub">The list the page is using</h3>
+      <p class="hint" style="margin:0;">What you add here is saved in this browser only. To make it permanent for every client, copy this list and paste it into <code>js/lookup.js</code> between the backticks of <code>BUILT_IN_MAPPING</code>, replacing what is there. <span id="xlCount"></span></p>
+      <div class="field"><textarea id="xlCode" rows="6" readonly spellcheck="false" aria-label="The list of meters, racks and companies"></textarea></div>
+      <div><button class="btn small" id="listCopy" type="button">Copy list</button></div>
     </div>
   </details>
 </section>
