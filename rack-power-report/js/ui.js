@@ -542,7 +542,6 @@
   ["dragleave", "drop"].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove("over"); }));
   drop.addEventListener("drop", e => { if (e.dataTransfer && e.dataTransfer.files.length) loadFiles(e.dataTransfer.files); });
   $("file").addEventListener("change", e => { loadFiles(e.target.files); e.target.value = ""; });
-  $("sampleBtn").addEventListener("click", loadSample);
 
   const colChange = key => e => { state.cols[key] = Number(e.target.value); if (key === "value" || key === "current") updateUnit(); renderAll(); };
   $("colMetric").addEventListener("change", colChange("metric"));
