@@ -24,14 +24,15 @@
     files: [], isSample: true, notes: [], workbook: null, sheet: "",
     method: "minmax", from: 0, to: 0, sort: "name", location: "",
     mappingText: DEFAULT_MAPPING, mappingIsDefault: true, rackCoText: DEFAULT_RACK_COMPANY, rackCoIsDefault: true, collapsed: new Set(), result: null, model: [],
-    company: "", companies: [], templateInfo: null, xl: null, nt: { sig: "", company: new Set(), rack: new Set(), labels: {} }
+    company: "", companies: [], templateInfo: null, savedMapping: "", savedRackCo: "", xl: null, nt: { sig: "", company: new Set(), rack: new Set(), labels: {} }
   };
   const ALL = "__all__";   /* the "All meters" button */
   try {
     const saved = localStorage.getItem("rackReport.mapping");
-    if (saved && saved.trim()) { state.mappingText = saved; state.mappingIsDefault = false; }
+    /* kept apart from the sample data shown at start-up, and used when a real file is loaded */
+    if (saved && saved.trim()) state.savedMapping = saved;
     const savedRc = localStorage.getItem("rackReport.rackCompany");
-    if (savedRc && savedRc.trim()) { state.rackCoText = savedRc; state.rackCoIsDefault = false; }
+    if (savedRc && savedRc.trim()) state.savedRackCo = savedRc;
   } catch (e) { /* storage may be unavailable */ }
 
   /* ---------- companies ---------- */
@@ -130,11 +131,17 @@
     if (tpl) {
       state.mappingText = templateToText(tpl);
       state.mappingIsDefault = false;
-    } else if (state.mappingIsDefault) state.mappingText = BUILT_IN_MAPPING;
-    if (state.rackCoIsDefault) state.rackCoText = BUILT_IN_RACK_COMPANY;
+            } else if (state.mappingIsDefault) {
+      state.mappingText = state.savedMapping || BUILT_IN_MAPPING;
+      if (state.savedMapping) state.mappingIsDefault = false;
+    }
+    if (state.rackCoIsDefault) {
+      state.rackCoText = state.savedRackCo || BUILT_IN_RACK_COMPANY;
+      if (state.savedRackCo) state.rackCoIsDefault = false;
+    }
     /* with the template's racks the report follows the Excel template: readings are meter counters, Last is the first reading of the start date,
        Current is the last reading of the end date, and racks and meters keep the template's order */
-    const likeTemplate = !!tpl || (state.mappingIsDefault && BUILT_IN_MAPPING.trim() !== "");
+    const likeTemplate = !!tpl || BUILT_IN_MAPPING.trim() !== "";
     state.valueType = likeTemplate ? "counter" : "auto";
     state.method = likeTemplate ? "time" : "minmax";
     state.sort = likeTemplate ? "list" : "name";
@@ -297,6 +304,19 @@
     $("rangeHint").textContent = "The file has readings from " + fmtDate(r.dataFrom) + " to " + fmtDate(r.dataTo) + ".";
   }
 
+  /* the list of meters, racks and companies, shown for copying, and the company names offered while typing */
+  /* before a real file is loaded the page shows sample data, so the list to build on is the saved or built-in one */
+  const baseList = () => state.isSample && state.mappingIsDefault && (state.savedMapping || BUILT_IN_MAPPING.trim()) ? (state.savedMapping || BUILT_IN_MAPPING) : state.mappingText;
+  function renderAddList() {
+    const base = baseList();
+    const rows = parseMappingRows(base);
+    const cos = [...new Set(rows.map(r => r.company).filter(Boolean))];
+    $("addCoList").innerHTML = cos.map(c => '<option value="' + esc(c) + '"></option>').join("");
+    if ($("xlCode").value !== base) $("xlCode").value = base;
+    const racks = new Set(rows.filter(r => r.rack).map(r => r.rack.toLowerCase() + "|" + (r.company || "").toLowerCase())).size;
+    $("xlCount").textContent = "It has " + rows.length + " lines, " + racks + " racks and " + cos.length + " companies.";
+  }
+  
   function renderCompanies() {
     const card = $("companyCard");
     if (!state.companies.length) { card.hidden = true; $("companyBtns").innerHTML = ""; return; }
@@ -500,6 +520,7 @@
     }
     renderCompanies();
     renderRange();
+    renderAddList();
     $("rep-h").textContent = "Usage by rack" + (companyFilter() ? " · " + companyFilter() : "");
     renderSource();
     renderNotices();
@@ -601,6 +622,7 @@
   $("mapReset").addEventListener("click", () => {
     state.mappingText = BUILT_IN_MAPPING;
     state.mappingIsDefault = true;
+    state.savedMapping = "";
     $("mapping").value = state.mappingText;
     try { localStorage.removeItem("rackReport.mapping"); } catch (err) { /* ignore */ }
     renderAll();
@@ -642,6 +664,42 @@
     }
     renderXl();
   });
+
+    $("addBtn").addEventListener("click", () => {
+    const say = (text, bad) => { $("addMsg").textContent = text; $("addMsg").style.color = bad ? "#b3261e" : ""; };
+    const company = $("addCo").value.trim(), rack = $("addRack").value.trim();
+    const meters = [...new Set($("addMeters").value.split(/[\n\r,;\t]+/).map(x => x.trim()).filter(Boolean))];
+    if (!company) { say("Type the company name.", true); return; }
+    if (!rack) { say("Type the rack name.", true); return; }
+    if (!meters.length) { say("Type at least one meter name, one per line.", true); return; }
+    const rows = parseMappingRows(baseList());
+    const spelled = (rows.find(r => r.company && r.company.toLowerCase() === company.toLowerCase()) || {}).company || company;
+    const key = (m, rk, co) => [m, rk, co || ""].join("\u0001").toLowerCase();
+    const have = new Set(rows.map(r => key(r.meter, r.rack, r.company)));
+    let added = 0, elsewhere = 0;
+    for (const m of meters) {
+      if (have.has(key(m, rack, spelled))) continue;
+      if (rows.some(r => r.meter.toLowerCase() === m.toLowerCase())) elsewhere++;
+      rows.push({ meter: m, rack, company: spelled });
+      have.add(key(m, rack, spelled));
+      added++;
+    }
+    if (!added) { say("Those meters are already listed under this rack and company.", true); return; }
+    state.mappingText = mappingToText(rows);
+    state.mappingIsDefault = false;
+    $("mapping").value = state.mappingText;
+    try { localStorage.setItem("rackReport.mapping", state.mappingText); } catch (err) { /* ignore */ }
+    $("addRack").value = ""; $("addMeters").value = "";
+    renderAll();
+    say("Added " + added + (added === 1 ? " meter" : " meters") + " to rack " + rack + " of " + spelled + "." + (elsewhere ? " " + elsewhere + (elsewhere === 1 ? " was" : " were") + " already listed under another rack or company, so it is counted in both." : "") + " Saved in this browser. Copy the list below into js/lookup.js to make it permanent.");
+  });
+  $("listCopy").addEventListener("click", async () => {
+    const ta = $("xlCode");
+    ta.select();
+    try { await navigator.clipboard.writeText(ta.value); setStatus("List copied."); }
+    catch (err) { try { document.execCommand("copy"); setStatus("List copied."); } catch (e2) { /* the text is selected, so Ctrl+C works */ } }
+  });
+  
   $("xlBody").addEventListener("input", e => {
     const t = e.target;
     if (t.dataset && t.dataset.xlName !== undefined && state.xl) state.xl.sheets[Number(t.dataset.xlName)].company = t.value;
@@ -651,12 +709,6 @@
     if (t.dataset && t.dataset.xlUse !== undefined && state.xl) { state.xl.sheets[Number(t.dataset.xlUse)].use = t.checked; renderXl(); }
   });
   $("xlBody").addEventListener("click", e => {
-    if (e.target.closest("#xlCopy")) {
-      const ta = $("xlCode"); ta.select();
-      try { navigator.clipboard.writeText(ta.value).then(() => setStatus("Code line copied."), () => { document.execCommand("copy"); setStatus("Code line copied."); }); }
-      catch (err) { try { document.execCommand("copy"); setStatus("Code line copied."); } catch (e2) { /* the text is selected, so Ctrl+C works */ } }
-      return;
-    }
     if (!e.target.closest("#xlApply") || !state.xl || !state.xl.sheets) return;
     const rows = [];
     for (const sh of state.xl.sheets) {
@@ -672,9 +724,8 @@
     state.company = "";
     state.collapsed.clear();
     state.xl.code = "const BUILT_IN_MAPPING = " + JSON.stringify(state.mappingText) + ";";
-    renderXl();
     renderAll();
-    setStatus("List 1 filled in from the Excel report: " + rows.length + " meters, " + new Set(rows.map(r => r.company.toLowerCase())).size + " companies. Load your readings file, then choose a company.");
+    setStatus("List filled in from the Excel report: " + rows.length + " meters, " + new Set(rows.map(r => r.company.toLowerCase())).size + " companies. To keep it for every client, copy the list from the box at the bottom of this card into js/lookup.js.");
   });
 
   $("ntBody").addEventListener("change", e => {
@@ -748,6 +799,7 @@
   $("rcReset").addEventListener("click", () => {
     state.rackCoText = BUILT_IN_RACK_COMPANY;
     state.rackCoIsDefault = true;
+    state.savedRackCo = "";
     $("rackCo").value = state.rackCoText;
     try { localStorage.removeItem("rackReport.rackCompany"); } catch (err) { /* ignore */ }
     state.notes = state.notes.filter(n => !n.rcWarn);
