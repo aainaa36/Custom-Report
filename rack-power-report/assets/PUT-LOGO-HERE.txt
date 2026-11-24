@@ -1,0 +1,1 @@
+Save your logo in this folder as logo.png. It is shown at the top right of the PDF report. You can delete this note.

@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Power Custom Report</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>Power Custom Report</h1>
+  <p>Drop in the export from the monitoring software, as CSV or Excel, then choose your company. The app works out the layout and builds the report in the same format as the Excel sheet: one grey row per rack with its total, and one row per PDU.</p>
+</header>
+
+<section class="card card-pad" aria-labelledby="load-h">
+  <h2 class="step" id="load-h">Load your data</h2>
+  <div class="drop" id="drop">
+    <div class="drop-text">
+      <strong>Drop CSV or Excel files here</strong>
+      <span>Any layout: one row per reading, one column per meter, or a summary sheet. Files stay in this browser tab.</span>
+    </div>
+    <div class="drop-actions">
+      <label class="btn primary" for="file">Choose file(s)</label>
+      <input id="file" type="file" accept=".csv,.txt,.xlsx,.xlsm,.xls,text/csv" multiple hidden>
+      <button class="btn" id="sampleBtn" type="button">Use sample data</button>
+    </div>
+  </div>
+  <div class="source" id="source"></div>
+  <div class="notices" id="notices" aria-live="polite"></div>
+
+  <details class="settings" id="settings">
+    <summary>Adjust layout, columns, period, racks and companies</summary>
+    <div class="grid">
+      <div class="field span-2">
+        <label for="layoutSel">File layout</label>
+        <select id="layoutSel">
+          <option value="auto">Detect automatically</option>
+          <option value="long">One row per reading (meter, time, kWh)</option>
+          <option value="wide">One column per meter, one row per time</option>
+          <option value="transposed">One row per meter, dates across the top</option>
+          <option value="summary">Last and Current readings already in the file</option>
+        </select>
+        <span class="hint" id="layoutHint"></span>
+      </div>
+      <div class="field" id="sheetField" hidden>
+        <label for="sheetSel">Excel sheet</label>
+        <select id="sheetSel"></select>
+      </div>
+      <div class="field" data-layouts="long transposed summary">
+        <label for="colMetric">Metric Name column</label>
+        <select id="colMetric"></select>
+      </div>
+      <div class="field" data-layouts="long">
+        <label for="colValue">kWh reading column</label>
+        <select id="colValue"></select>
+      </div>
+      <div class="field" data-layouts="summary">
+        <label for="colLast">Last reading column</label>
+        <select id="colLast"></select>
+      </div>
+      <div class="field" data-layouts="summary">
+        <label for="colCurrent">Current reading column</label>
+        <select id="colCurrent"></select>
+      </div>
+      <div class="field" data-layouts="long wide">
+        <label for="colTime">Time column</label>
+        <select id="colTime"></select>
+      </div>
+      <div class="field" data-layouts="long transposed summary">
+        <label for="colRack">Rack column (if the file has one)</label>
+        <select id="colRack"></select>
+      </div>
+      <div class="field" data-layouts="long transposed summary">
+        <label for="colCompany">Company column (if the file has one)</label>
+        <select id="colCompany"></select>
+      </div>
+      <div class="field">
+        <label for="unitSel">Reading unit</label>
+        <select id="unitSel">
+          <option value="auto">Detect from header</option>
+          <option value="kWh">kWh</option>
+          <option value="Wh">Wh (divide by 1,000)</option>
+          <option value="MWh">MWh (multiply by 1,000)</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="dateSel">Date order (for dates like 1/4/2026)</label>
+        <select id="dateSel">
+          <option value="auto">Detect automatically</option>
+          <option value="dmy">Day first (1 April)</option>
+          <option value="mdy">Month first (4 January)</option>
+        </select>
+      </div>
+      <div class="field" data-layouts="long wide transposed">
+        <label for="typeSel">What the readings are</label>
+        <select id="typeSel">
+          <option value="auto">Detect automatically</option>
+          <option value="counter">Meter counter that keeps climbing (usage = Current − Last)</option>
+          <option value="interval">Consumption per reading (usage = sum of readings)</option>
+        </select>
+      </div>
+      <div class="field" data-layouts="long wide transposed">
+        <label for="ruleSel">How Usage is worked out</label>
+        <select id="ruleSel">
+          <option value="auto">Detect automatically</option>
+          <option value="day">Per date: highest − lowest between 12:00 a.m. and 11:59 p.m., added up</option>
+          <option value="period">Whole period: highest − lowest over all dates</option>
+        </select>
+        <span class="hint">Automatic uses the per-date rule when most dates have two or more readings.</span>
+      </div>
+      <div class="field" data-layouts="long wide transposed">
+        <label>How to read Last and Current</label>
+        <div class="radio-row">
+          <label><input type="radio" name="method" value="minmax" checked> Lowest and highest reading in the period (same as the Power BI dashboard)</label>
+          <label><input type="radio" name="method" value="time"> First and last reading by time (use if a meter counter can reset)</label>
+        </div>
+      </div>
+      <div class="field">
+        <label for="location">Location (shown on the report)</label>
+        <input id="location" type="text" placeholder="e.g. MY01 DC" maxlength="60">
+      </div>
+      <div class="field span-2">
+        <label for="mapping">List 1 · Which rack each meter belongs to: one meter per line as <code>meter name, rack name</code></label>
+        <textarea id="mapping" spellcheck="false" placeholder="Meter name,Rack name&#10;PDU-S1-FN2-R27,DB1/IIMS&#10;PDU-S2-FN2-R27,DB1/IIMS&#10;PDU-S1-FN4-*,Rack 4"></textarea>
+        <span class="hint">A meter name can end in <code>*</code> to cover many meters at once, e.g. <code>PDU-S1-FN2-R27*</code>. This list is only used when the data file has no rack column of its own. Meters that are not listed appear under “Unassigned”. A third column (company) is optional: it gives one meter a company directly. The sample data comes with example lists, which are cleared when you load your own file.</span>
+        <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:6px;">
+          <label class="btn small" for="mapFile">Load list 1 from CSV</label>
+          <input id="mapFile" type="file" accept=".csv,.txt,text/csv" hidden>
+          <button class="btn small" id="mapReset" type="button" title="Go back to the built-in list (empty if there is none)">Reset list 1</button>
+        </div>
+      </div>
+      <div class="field span-2">
+        <label for="rackCo">List 2 · Which company each rack belongs to: one rack per line as <code>rack name, company</code></label>
+        <textarea id="rackCo" spellcheck="false" placeholder="Rack name,Company&#10;DB1/IIMS,Company A&#10;IBM,Company A&#10;VTL,Company B"></textarea>
+        <span class="hint">Each company here becomes a button. A company's report uses the meters of its racks: meter → rack (list 1, or the rack column of the file) → company (list 2). A rack name can use <code>*</code>, e.g. <code>R2*</code>.</span>
+        <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:6px;">
+          <label class="btn small" for="rcFile">Load list 2 from CSV</label>
+          <input id="rcFile" type="file" accept=".csv,.txt,text/csv" hidden>
+          <button class="btn small" id="rcReset" type="button" title="Go back to the built-in list (empty if there is none)">Reset list 2</button>
+        </div>
+      </div>
+    </div>
+  </details>
+</section>
+
+
+
+
+
+<section class="card card-pad" id="companyCard" aria-labelledby="co-h" hidden>
+  <h2 class="step" id="co-h">Choose your company</h2>
+  <div class="chips" id="companyBtns" role="group" aria-labelledby="co-h"></div>
+  <p class="chip-hint" id="companyHint"></p>
+</section>
+
+<section class="card card-pad" id="rangeCard" aria-labelledby="rg-h" hidden>
+  <h2 class="step" id="rg-h">Choose the date range</h2>
+  <div class="range-row">
+    <div class="field"><label for="from">From</label><input id="from" type="date"></div>
+    <div class="field"><label for="to">To</label><input id="to" type="date"></div>
+    <div class="chips" id="rangePresets" role="group" aria-label="Quick ranges"></div>
+  </div>
+  <p class="chip-hint" id="rangeNote"></p>
+  <p class="chip-hint" id="rangeHint"></p>
+</section>
+
+<section class="card" aria-labelledby="rep-h">
+  <div class="report-head">
+    <div>
+      <h2 id="rep-h">Usage by rack</h2>
+      <p class="loc" id="locLine"></p>
+    </div>
+    <div class="toolbar">
+      <label class="muted" id="sortLabel" for="sort" style="font-size:13px;">Sort racks</label>
+      <select id="sort">
+        <option value="name">Name A–Z</option>
+        <option value="list">Order of the template</option>
+        <option value="usage">Total usage, high to low</option>
+        <option value="order">Order in the file</option>
+      </select>
+      <button class="btn small" id="expandAll" type="button">Expand all</button>
+      <button class="btn small" id="collapseAll" type="button">Collapse all</button>
+    </div>
+  </div>
+  <div class="stats" id="stats"></div>
+  <div class="toolbar" style="padding: 0 18px 14px;">
+    <button class="btn primary" id="dlPdf" type="button">Generate PDF</button>
+    <button class="btn" id="dlCsv" type="button">Generate CSV</button>
+    <button class="btn" id="copyTbl" type="button">Copy table</button>
+  </div>
+  <div class="status" id="status" role="status" aria-live="polite"></div>
+  <div class="table-scroll" id="tableWrap"></div>
+  <div class="formula">
+    <p id="howNote" style="margin:0 0 6px;"></p>
+    Usage (C) = Current (B) − Last (A) for each meter. Total Usage (E) = the sum of Usage (C) for every meter in the rack. Values are in kWh.
+  </div>
+</section>
+
+<section class="card card-pad" id="xlCard">
+  <details class="setup" id="xlDetails">
+    <summary>Import racks and companies from your Excel report</summary>
+    <div class="setup-body">
+      <p class="hint" style="margin:0;">For whoever looks after the report: choose the Custom Report workbook to read its racks and meters, one sheet per company, and get the code line that builds them into the page. Clients do not need this, because the page already holds the racks and companies. The file is read on your computer and not uploaded anywhere.</p>
+      <div><label class="btn small" for="xlFile">Choose Excel report</label><input id="xlFile" type="file" accept=".xlsx,.xlsm,.xls" hidden></div>
+      <div id="xlBody"></div>
+    </div>
+  </details>
+</section>
+
+<section class="card card-pad" id="setupCard" hidden>
+  <details class="setup" id="ntDetails">
+    <summary>Find companies and racks in the meter names</summary>
+    <div class="setup-body">
+      <p class="hint" id="ntHint" style="margin:0;"></p>
+      <div id="ntBody"></div>
+    </div>
+  </details>
+</section>
+
+<p class="privacy">Nothing is uploaded. The file is read and calculated inside this page.</p>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="js/lookup.js"></script>
+<script src="js/core.js"></script>
+
+<script src="js/ui.js"></script>
+</body>
+</html>
