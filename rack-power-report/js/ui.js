@@ -860,7 +860,7 @@
       const img = new Image();
       img.onload = () => resolve(img.naturalWidth ? img : null);
       img.onerror = () => resolve(null);
-      img.src = "assets/logo.png";
+      img.src = "assets/Hitachi_Logo.png";
     });
   }
 
